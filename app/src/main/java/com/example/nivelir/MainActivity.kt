@@ -53,8 +53,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     private var pitch by mutableFloatStateOf(0f)
     private var roll by mutableFloatStateOf(0f)
-    private var calibratedPitchOffset by mutableFloatStateOf(0f)
-    private var calibratedRollOffset by mutableFloatStateOf(0f)
 
     private var hasHapticsTriggered = false
 
@@ -84,11 +82,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
         setContent {
             MaterialTheme {
-                val displayPitch = pitch - calibratedPitchOffset
-                val displayRoll = roll - calibratedRollOffset
-
-                LaunchedEffect(displayPitch, displayRoll) {
-                    if (abs(displayPitch) < 0.3f && abs(displayRoll) < 0.3f) {
+                LaunchedEffect(pitch, roll) {
+                    if (abs(pitch) < 0.3f && abs(roll) < 0.3f) {
                         if (!hasHapticsTriggered) {
                             try {
                                 vibrator?.vibrate(
@@ -103,16 +98,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 }
 
                 NivelirScreen(
-                    pitch = displayPitch,
-                    roll = displayRoll,
-                    onCalibrate = {
-                        calibratedPitchOffset = pitch
-                        calibratedRollOffset = roll
-                    },
-                    onReset = {
-                        calibratedPitchOffset = 0f
-                        calibratedRollOffset = 0f
-                    },
+                    pitch = pitch,
+                    roll = roll,
                     onExit = {
                         finish()
                     }
@@ -175,8 +162,6 @@ val BubbleGreyEdge = Color(0xFF222222)
 fun NivelirScreen(
     pitch: Float,
     roll: Float,
-    onCalibrate: () -> Unit,
-    onReset: () -> Unit,
     onExit: () -> Unit
 ) {
     val textRotationAngle = remember(pitch, roll) {
@@ -332,37 +317,14 @@ fun NivelirScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Updated button row to seamlessly include the Exit action
-        Row(
+        Button(
+            onClick = onExit,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B231D)),
+            border = BorderStroke(1.5.dp, BezelBorderColor),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Button(
-                onClick = onCalibrate,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = FluidCenterColor),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Zero", color = Color(0xFF1A1200), fontWeight = FontWeight.Black, fontSize = 15.sp)
-            }
-            Button(
-                onClick = onReset,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B231D)),
-                border = BorderStroke(1.5.dp, BezelBorderColor),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Reset", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            }
-            Button(
-                onClick = onExit,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B231D)),
-                border = BorderStroke(1.5.dp, BezelBorderColor),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Exit", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            }
+            Text("Exit", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }
