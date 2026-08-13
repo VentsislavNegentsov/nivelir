@@ -35,6 +35,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -141,15 +142,81 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 }
 
-val CaseOuterBg = Color(0xFF12100E)
-val CaseInnerBg = Color(0xFF1E1A17)
-val BezelBorderColor = Color(0xFF382E26)
-val FluidCenterColor = Color(0xFFFFB300)
-val FluidEdgeColor = Color(0xFFB26A00)
-val ReticleColor = Color(0xFF38230B)
+data class ThemePalette(
+    val name: String,
+    val caseOuterBg: Color,
+    val caseInnerBg: Color,
+    val bezelBorderColor: Color,
+    val fluidCenterColor: Color,
+    val fluidEdgeColor: Color,
+    val reticleColor: Color
+)
 
-val BubbleGreyCenter = Color(0xFF555555)
-val BubbleGreyEdge = Color(0xFF222222)
+val AppThemes = listOf(
+    ThemePalette(
+        name = "Amber",
+        caseOuterBg = Color(0xFF12100E),
+        caseInnerBg = Color(0xFF1E1A17),
+        bezelBorderColor = Color(0xFF382E26),
+        fluidCenterColor = Color(0xFFFFB300),
+        fluidEdgeColor = Color(0xFFB26A00),
+        reticleColor = Color(0xFF38230B)
+    ),
+    ThemePalette(
+        name = "Cyan",
+        caseOuterBg = Color(0xFF0A1215),
+        caseInnerBg = Color(0xFF122026),
+        bezelBorderColor = Color(0xFF1D353F),
+        fluidCenterColor = Color(0xFF00E5FF),
+        fluidEdgeColor = Color(0xFF00838F),
+        reticleColor = Color(0xFF00363D)
+    ),
+    ThemePalette(
+        name = "Magenta",
+        caseOuterBg = Color(0xFF150A12),
+        caseInnerBg = Color(0xFF20121D),
+        bezelBorderColor = Color(0xFF3F1D35),
+        fluidCenterColor = Color(0xFFFF007F),
+        fluidEdgeColor = Color(0xFF8F0047),
+        reticleColor = Color(0xFF3D001F)
+    ),
+    ThemePalette(
+        name = "Lime",
+        caseOuterBg = Color(0xFF0E120A),
+        caseInnerBg = Color(0xFF171E12),
+        bezelBorderColor = Color(0xFF2E3826),
+        fluidCenterColor = Color(0xFFCCFF00),
+        fluidEdgeColor = Color(0xFF77B200),
+        reticleColor = Color(0xFF23380B)
+    ),
+    ThemePalette(
+        name = "Matrix",
+        caseOuterBg = Color(0xFF0A150D),
+        caseInnerBg = Color(0xFF122015),
+        bezelBorderColor = Color(0xFF1D3F26),
+        fluidCenterColor = Color(0xFF00FF66),
+        fluidEdgeColor = Color(0xFF008F38),
+        reticleColor = Color(0xFF003D17)
+    ),
+    ThemePalette(
+        name = "Purple",
+        caseOuterBg = Color(0xFF120A15),
+        caseInnerBg = Color(0xFF1C1220),
+        bezelBorderColor = Color(0xFF351D3F),
+        fluidCenterColor = Color(0xFF9900FF),
+        fluidEdgeColor = Color(0xFF55008F),
+        reticleColor = Color(0xFF22003D)
+    ),
+    ThemePalette(
+        name = "Crimson",
+        caseOuterBg = Color(0xFF150A0A),
+        caseInnerBg = Color(0xFF201212),
+        bezelBorderColor = Color(0xFF3F1D1D),
+        fluidCenterColor = Color(0xFFFF2A2A),
+        fluidEdgeColor = Color(0xFF8F1212),
+        reticleColor = Color(0xFF3D0B0B)
+    )
+)
 
 @Composable
 fun NivelirScreen(
@@ -157,10 +224,17 @@ fun NivelirScreen(
     roll: Float,
     onExit: () -> Unit
 ) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("nivelir_prefs", Context.MODE_PRIVATE) }
+    var currentThemeIndex by remember {
+        mutableIntStateOf(prefs.getInt("theme_index", 0).coerceIn(0, AppThemes.size - 1))
+    }
+    val theme = AppThemes[currentThemeIndex]
+
     val textRotationAngle = remember(pitch, roll) {
         when {
-            roll > 20f -> -90f
-            roll < -20f -> 90f
+            roll > 20f -> 90f
+            roll < -20f -> -90f
             pitch < -25f -> 180f
             else -> 0f
         }
@@ -169,7 +243,7 @@ fun NivelirScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(CaseOuterBg)
+            .background(theme.caseOuterBg)
             .systemBarsPadding()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -203,8 +277,8 @@ fun NivelirScreen(
                 .weight(1f)
                 .shadow(16.dp, RoundedCornerShape(24.dp))
                 .clip(RoundedCornerShape(24.dp))
-                .background(CaseInnerBg)
-                .border(2.dp, BezelBorderColor, RoundedCornerShape(24.dp))
+                .background(theme.caseInnerBg)
+                .border(2.dp, theme.bezelBorderColor, RoundedCornerShape(24.dp))
                 .padding(20.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -222,6 +296,7 @@ fun NivelirScreen(
                     BullseyeLevelView(
                         pitch = pitch,
                         roll = roll,
+                        theme = theme,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -253,6 +328,7 @@ fun NivelirScreen(
 
                         VerticalTubeLevelView(
                             pitch = pitch,
+                            theme = theme,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
@@ -270,6 +346,7 @@ fun NivelirScreen(
                 ) {
                     HorizontalTubeLevelView(
                         roll = roll,
+                        theme = theme,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -310,20 +387,48 @@ fun NivelirScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = onExit,
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2B231D)),
-            border = BorderStroke(1.5.dp, BezelBorderColor),
-            shape = RoundedCornerShape(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Exit", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Button(
+                onClick = {
+                    currentThemeIndex = (currentThemeIndex + 1) % AppThemes.size
+                    prefs.edit().putInt("theme_index", currentThemeIndex).apply()
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = theme.caseInnerBg),
+                border = BorderStroke(1.5.dp, theme.fluidCenterColor),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "Theme: ${theme.name}",
+                    color = theme.fluidCenterColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+
+            Button(
+                onClick = onExit,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = theme.caseInnerBg),
+                border = BorderStroke(1.5.dp, theme.bezelBorderColor),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "Exit",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
         }
     }
 }
 
 @Composable
-fun BullseyeLevelView(pitch: Float, roll: Float, modifier: Modifier = Modifier) {
+fun BullseyeLevelView(pitch: Float, roll: Float, theme: ThemePalette, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val minDim = size.minDimension
         if (minDim <= 0f) return@Canvas
@@ -334,7 +439,7 @@ fun BullseyeLevelView(pitch: Float, roll: Float, modifier: Modifier = Modifier) 
 
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF2C241E), Color(0xFF15110E)),
+                colors = listOf(theme.bezelBorderColor, theme.caseOuterBg),
                 center = center,
                 radius = outerRadius
             ),
@@ -344,7 +449,7 @@ fun BullseyeLevelView(pitch: Float, roll: Float, modifier: Modifier = Modifier) 
 
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(FluidCenterColor, FluidEdgeColor),
+                colors = listOf(theme.fluidCenterColor, theme.fluidEdgeColor),
                 center = center,
                 radius = fluidRadius
             ),
@@ -352,14 +457,13 @@ fun BullseyeLevelView(pitch: Float, roll: Float, modifier: Modifier = Modifier) 
             center = center
         )
 
-        drawLine(ReticleColor, Offset(center.x, center.y - fluidRadius), Offset(center.x, center.y + fluidRadius), 1.5f.dp.toPx())
-        drawLine(ReticleColor, Offset(center.x - fluidRadius, center.y), Offset(center.x + fluidRadius, center.y), 1.5f.dp.toPx())
-        drawCircle(ReticleColor, radius = fluidRadius * 0.3f, center = center, style = Stroke(width = 1.5f.dp.toPx()))
+        drawLine(theme.reticleColor, Offset(center.x, center.y - fluidRadius), Offset(center.x, center.y + fluidRadius), 1.5f.dp.toPx())
+        drawLine(theme.reticleColor, Offset(center.x - fluidRadius, center.y), Offset(center.x + fluidRadius, center.y), 1.5f.dp.toPx())
+        drawCircle(theme.reticleColor, radius = fluidRadius * 0.3f, center = center, style = Stroke(width = 1.5f.dp.toPx()))
 
-        val bubbleRadius = fluidRadius * 0.2f
+        val bubbleRadius = fluidRadius * 0.16f
         val maxOffset = max(0f, fluidRadius - bubbleRadius - 4.dp.toPx())
 
-        // Inverted signs for roll and pitch
         val clampedRoll = (roll / 30f).coerceIn(-1f, 1f)
         val clampedPitch = (-pitch / 30f).coerceIn(-1f, 1f)
 
@@ -368,25 +472,33 @@ fun BullseyeLevelView(pitch: Float, roll: Float, modifier: Modifier = Modifier) 
             y = center.y + (clampedPitch * maxOffset)
         )
 
+        // Realistic glass bubble with offset glossy highlight and rim
+        val highlightOffset = Offset(bubbleCenter.x - bubbleRadius * 0.3f, bubbleCenter.y - bubbleRadius * 0.3f)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(BubbleGreyCenter, BubbleGreyEdge),
-                center = bubbleCenter,
-                radius = bubbleRadius
+                colors = listOf(Color.White.copy(alpha = 0.85f), theme.fluidCenterColor.copy(alpha = 0.3f), theme.fluidEdgeColor.copy(alpha = 0.85f)),
+                center = highlightOffset,
+                radius = bubbleRadius * 1.2f
             ),
             radius = bubbleRadius,
             center = bubbleCenter
+        )
+        drawCircle(
+            color = theme.reticleColor.copy(alpha = 0.6f),
+            radius = bubbleRadius,
+            center = bubbleCenter,
+            style = Stroke(width = 1.dp.toPx())
         )
     }
 }
 
 @Composable
-fun VerticalTubeLevelView(pitch: Float, modifier: Modifier = Modifier) {
+fun VerticalTubeLevelView(pitch: Float, theme: ThemePalette, modifier: Modifier = Modifier) {
     Canvas(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(CaseOuterBg)
-            .border(1.5.dp, BezelBorderColor, RoundedCornerShape(10.dp))
+            .background(theme.caseOuterBg)
+            .border(1.5.dp, theme.bezelBorderColor, RoundedCornerShape(10.dp))
     ) {
         val w = size.width
         val h = size.height
@@ -394,42 +506,49 @@ fun VerticalTubeLevelView(pitch: Float, modifier: Modifier = Modifier) {
 
         drawRect(
             brush = Brush.verticalGradient(
-                colors = listOf(FluidEdgeColor, FluidCenterColor, FluidEdgeColor)
+                colors = listOf(theme.fluidEdgeColor, theme.fluidCenterColor, theme.fluidEdgeColor)
             )
         )
 
         val mark1Y = h * 0.44f
         val mark2Y = h * 0.56f
-        drawLine(ReticleColor, Offset(0f, mark1Y), Offset(w, mark1Y), strokeWidth = 2.dp.toPx())
-        drawLine(ReticleColor, Offset(0f, mark2Y), Offset(w, mark2Y), strokeWidth = 2.dp.toPx())
+        drawLine(theme.reticleColor, Offset(0f, mark1Y), Offset(w, mark1Y), strokeWidth = 2.dp.toPx())
+        drawLine(theme.reticleColor, Offset(0f, mark2Y), Offset(w, mark2Y), strokeWidth = 2.dp.toPx())
 
-        val bubbleHeight = 32.dp.toPx()
-        val bubbleWidth = w * 0.8f
+        val bubbleHeight = 26.dp.toPx()
+        val bubbleWidth = w * 0.72f
         val maxTravel = max(0f, (h / 2) - (bubbleHeight / 2) - 4.dp.toPx())
-        // Inverted pitch sign
         val bubbleY = (h / 2) - ((pitch / 30f).coerceIn(-1f, 1f) * maxTravel) - (bubbleHeight / 2)
         val bubbleX = (w - bubbleWidth) / 2
 
+        val bubbleHighlightCenter = Offset(w / 2 - bubbleWidth * 0.15f, bubbleY + bubbleHeight * 0.3f)
         drawRoundRect(
             brush = Brush.radialGradient(
-                colors = listOf(BubbleGreyCenter, BubbleGreyEdge),
-                center = Offset(w / 2, bubbleY + (bubbleHeight / 2)),
-                radius = max(1f, bubbleHeight)
+                colors = listOf(Color.White.copy(alpha = 0.85f), theme.fluidCenterColor.copy(alpha = 0.3f), theme.fluidEdgeColor.copy(alpha = 0.85f)),
+                center = bubbleHighlightCenter,
+                radius = max(1f, bubbleHeight) * 1.1f
             ),
             topLeft = Offset(bubbleX, bubbleY),
             size = Size(bubbleWidth, bubbleHeight),
             cornerRadius = CornerRadius(bubbleHeight / 2, bubbleHeight / 2)
         )
+        drawRoundRect(
+            color = theme.reticleColor.copy(alpha = 0.6f),
+            topLeft = Offset(bubbleX, bubbleY),
+            size = Size(bubbleWidth, bubbleHeight),
+            cornerRadius = CornerRadius(bubbleHeight / 2, bubbleHeight / 2),
+            style = Stroke(width = 1.dp.toPx())
+        )
     }
 }
 
 @Composable
-fun HorizontalTubeLevelView(roll: Float, modifier: Modifier = Modifier) {
+fun HorizontalTubeLevelView(roll: Float, theme: ThemePalette, modifier: Modifier = Modifier) {
     Canvas(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(CaseOuterBg)
-            .border(1.5.dp, BezelBorderColor, RoundedCornerShape(10.dp))
+            .background(theme.caseOuterBg)
+            .border(1.5.dp, theme.bezelBorderColor, RoundedCornerShape(10.dp))
     ) {
         val w = size.width
         val h = size.height
@@ -437,31 +556,38 @@ fun HorizontalTubeLevelView(roll: Float, modifier: Modifier = Modifier) {
 
         drawRect(
             brush = Brush.horizontalGradient(
-                colors = listOf(FluidEdgeColor, FluidCenterColor, FluidEdgeColor)
+                colors = listOf(theme.fluidEdgeColor, theme.fluidCenterColor, theme.fluidEdgeColor)
             )
         )
 
         val mark1X = w * 0.44f
         val mark2X = w * 0.56f
-        drawLine(ReticleColor, Offset(mark1X, 0f), Offset(mark1X, h), strokeWidth = 2.dp.toPx())
-        drawLine(ReticleColor, Offset(mark2X, 0f), Offset(mark2X, h), strokeWidth = 2.dp.toPx())
+        drawLine(theme.reticleColor, Offset(mark1X, 0f), Offset(mark1X, h), strokeWidth = 2.dp.toPx())
+        drawLine(theme.reticleColor, Offset(mark2X, 0f), Offset(mark2X, h), strokeWidth = 2.dp.toPx())
 
-        val bubbleWidth = 32.dp.toPx()
-        val bubbleHeight = h * 0.8f
+        val bubbleWidth = 26.dp.toPx()
+        val bubbleHeight = h * 0.72f
         val maxTravel = max(0f, (w / 2) - (bubbleWidth / 2) - 4.dp.toPx())
-        // Inverted roll sign
         val bubbleX = (w / 2) + ((roll / 30f).coerceIn(-1f, 1f) * maxTravel) - (bubbleWidth / 2)
         val bubbleY = (h - bubbleHeight) / 2
 
+        val bubbleHighlightCenter = Offset(bubbleX + bubbleWidth * 0.3f, h / 2 - bubbleHeight * 0.15f)
         drawRoundRect(
             brush = Brush.radialGradient(
-                colors = listOf(BubbleGreyCenter, BubbleGreyEdge),
-                center = Offset(bubbleX + (bubbleWidth / 2), h / 2),
-                radius = max(1f, bubbleWidth)
+                colors = listOf(Color.White.copy(alpha = 0.85f), theme.fluidCenterColor.copy(alpha = 0.3f), theme.fluidEdgeColor.copy(alpha = 0.85f)),
+                center = bubbleHighlightCenter,
+                radius = max(1f, bubbleWidth) * 1.1f
             ),
             topLeft = Offset(bubbleX, bubbleY),
             size = Size(bubbleWidth, bubbleHeight),
             cornerRadius = CornerRadius(bubbleWidth / 2, bubbleWidth / 2)
+        )
+        drawRoundRect(
+            color = theme.reticleColor.copy(alpha = 0.6f),
+            topLeft = Offset(bubbleX, bubbleY),
+            size = Size(bubbleWidth, bubbleHeight),
+            cornerRadius = CornerRadius(bubbleWidth / 2, bubbleWidth / 2),
+            style = Stroke(width = 1.dp.toPx())
         )
     }
 }
