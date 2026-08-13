@@ -44,6 +44,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.max
+import kotlin.math.sqrt
 
 class MainActivity : ComponentActivity(), SensorEventListener {
 
@@ -67,8 +68,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         insetsController.hide(WindowInsetsCompat.Type.systemBars())
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        primarySensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
-            ?: sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        primarySensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
         vibrator = try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -110,26 +110,19 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         event ?: return
+        if (event.sensor.type != Sensor.TYPE_ACCELEROMETER) return
+
         val alpha = 0.12f
 
-        if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
-            val rotationMatrix = FloatArray(9)
-            SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
-            val orientation = FloatArray(3)
-            SensorManager.getOrientation(rotationMatrix, orientation)
+        val x = event.values[0].toDouble()
+        val y = event.values[1].toDouble()
+        val z = event.values[2].toDouble()
 
-            val rawPitch = Math.toDegrees(orientation[1].toDouble()).toFloat()
-            val rawRoll = Math.toDegrees(orientation[2].toDouble()).toFloat()
+        val rawRoll = Math.toDegrees(atan2(x, sqrt(y * y + z * z))).toFloat()
+        val rawPitch = Math.toDegrees(atan2(y, sqrt(x * x + z * z))).toFloat()
 
-            pitch += alpha * (rawPitch - pitch)
-            roll += alpha * (rawRoll - roll)
-        } else if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-            val rawRoll = Math.toDegrees(atan2(event.values[0].toDouble(), event.values[2].toDouble())).toFloat()
-            val rawPitch = Math.toDegrees(atan2(event.values[1].toDouble(), event.values[2].toDouble())).toFloat()
-
-            pitch += alpha * (rawPitch - pitch)
-            roll += alpha * (rawRoll - roll)
-        }
+        pitch += alpha * (rawPitch - pitch)
+        roll += alpha * (rawRoll - roll)
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -168,8 +161,8 @@ fun NivelirScreen(
         when {
             roll > 20f -> -90f
             roll < -20f -> 90f
-            pitch < -25f -> 0f
-            else -> 180f
+            pitch < -25f -> 180f
+            else -> 0f
         }
     }
 
@@ -366,8 +359,9 @@ fun BullseyeLevelView(pitch: Float, roll: Float, modifier: Modifier = Modifier) 
         val bubbleRadius = fluidRadius * 0.2f
         val maxOffset = max(0f, fluidRadius - bubbleRadius - 4.dp.toPx())
 
-        val clampedRoll = (-roll / 30f).coerceIn(-1f, 1f)
-        val clampedPitch = (pitch / 30f).coerceIn(-1f, 1f)
+        // Inverted signs for roll and pitch
+        val clampedRoll = (roll / 30f).coerceIn(-1f, 1f)
+        val clampedPitch = (-pitch / 30f).coerceIn(-1f, 1f)
 
         val bubbleCenter = Offset(
             x = center.x + (clampedRoll * maxOffset),
@@ -412,7 +406,8 @@ fun VerticalTubeLevelView(pitch: Float, modifier: Modifier = Modifier) {
         val bubbleHeight = 32.dp.toPx()
         val bubbleWidth = w * 0.8f
         val maxTravel = max(0f, (h / 2) - (bubbleHeight / 2) - 4.dp.toPx())
-        val bubbleY = (h / 2) + ((pitch / 30f).coerceIn(-1f, 1f) * maxTravel) - (bubbleHeight / 2)
+        // Inverted pitch sign
+        val bubbleY = (h / 2) - ((pitch / 30f).coerceIn(-1f, 1f) * maxTravel) - (bubbleHeight / 2)
         val bubbleX = (w - bubbleWidth) / 2
 
         drawRoundRect(
@@ -454,7 +449,8 @@ fun HorizontalTubeLevelView(roll: Float, modifier: Modifier = Modifier) {
         val bubbleWidth = 32.dp.toPx()
         val bubbleHeight = h * 0.8f
         val maxTravel = max(0f, (w / 2) - (bubbleWidth / 2) - 4.dp.toPx())
-        val bubbleX = (w / 2) - ((roll / 30f).coerceIn(-1f, 1f) * maxTravel) - (bubbleWidth / 2)
+        // Inverted roll sign
+        val bubbleX = (w / 2) + ((roll / 30f).coerceIn(-1f, 1f) * maxTravel) - (bubbleWidth / 2)
         val bubbleY = (h - bubbleHeight) / 2
 
         drawRoundRect(
